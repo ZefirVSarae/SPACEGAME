@@ -24,7 +24,10 @@
             width: 100%;
             height: 100%;
             background-color: #000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             z-index: 100;
             transition: opacity 1s ease-out;
         }
@@ -50,8 +53,14 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
 
         #ui-layer {
             position: absolute;
@@ -79,16 +88,23 @@
             text-transform: uppercase;
             font-size: 11px;
         }
-        button:hover { background: white; color: black; }
-        button.active { background: #2196F3; border-color: #2196F3; color: white; }
+        button:hover {
+            background: white;
+            color: black;
+        }
+        button.active {
+            background: #2196F3;
+            border-color: #2196F3;
+            color: white;
+        }
     </style>
 </head>
 <body>
 
     <div id="loading-screen">
-        <div id="loading-text">Загрузка ресурсов...</div>
+        <div id="loading-text">Идет загрузка текстур...</div>
         <div class="spinner"></div>
-        <div id="loading-status">Подготовка системы...</div>
+        <div id="loading-status">Подготовка ресурсов...</div>
     </div>
 
     <div id="ui-layer">
@@ -125,34 +141,48 @@
         let pluto, charonPivot;
 
         let texturesLoaded = false;
+        let itemsLoaded = 0;
+        let itemsTotal = 0;
 
-        // Используем wsrv.nl как прокси для обхода CORS на GitHub Pages
-        const proxy = "https://wsrv.nl/?url=";
-        const getTexturePath = (url) => proxy + encodeURIComponent(url);
+        // Настройка прокси для обхода CORS и преобразование ссылок Dropbox
+        const proxy = "https://images.weserv.nl/?url=";
+        const getTexturePath = (url) => {
+            // Заменяем dl=0 на raw=1 для прямого доступа к файлу
+            let rawUrl = url.replace("dl=0", "raw=1");
+            return proxy + encodeURIComponent(rawUrl);
+        };
         
         const TEXTURES = {
-            mercury: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/mercury.jpg",
-            venus: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/venus_atmosphere.jpg",
-            earthDay: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg",
-            earthNight: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg",
-            moon: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg",
-            mars: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/mars_1k_color.jpg",
-            jupiter: "https://cosmos-online.ru/wp-content/uploads/2018/10/2k_jupiter.jpg",
-            io: "https://textur.gas-kvas.com/uploads/posts/2024-10/textur-gas-kvas-com-l2s3-p-teksturi-sputniki-yupitera-1.jpg",
-            europa: "https://textur.gas-kvas.com/uploads/posts/2024-10/textur-gas-kvas-com-l478-p-teksturi-sputniki-yupitera-3.jpg",
-            ganymede: "https://textur.gas-kvas.com/uploads/posts/2024-10/textur-gas-kvas-com-l4mc-p-teksturi-sputniki-yupitera-5.jpg",
-            callisto: "https://textur.gas-kvas.com/uploads/posts/2024-10/textur-gas-kvas-com-l4hw-p-teksturi-sputniki-yupitera-4.jpg",
-            saturn: "https://cosmos-online.ru/wp-content/uploads/2018/10/2k_saturn.jpg",
-            saturnRings: "https://cosmos-online.ru/wp-content/uploads/2018/10/2k_saturn_ring_alpha.png",
-            titan: "https://textur.gas-kvas.com/uploads/posts/2024-10/textur-gas-kvas-com-n097-p-teksturi-titana-sputnik-2.jpg",
-            uranus: "https://cosmos-online.ru/wp-content/uploads/2018/10/2k_uranus.jpg",
-            neptune: "https://cosmos-online.ru/wp-content/uploads/2018/10/2k_neptune.jpg",
-            pluto: "https://textur.gas-kvas.com/uploads/posts/2024-10/thumbs/textur-gas-kvas-com-kdb2-p-teksturi-plutona-2.jpg",
-            charon: "https://textur.gas-kvas.com/uploads/posts/2024-10/textur-gas-kvas-com-kel2-p-teksturi-plutona-8.jpg"
+            mercury: "https://www.dropbox.com/scl/fi/m2o20lgdsp1fi7rn4oa9l/2k_mercury.jpg?rlkey=73gjkn98wr6nfb8v93kyo39jc&st=7s58klwj&dl=0",
+            venus: "https://www.dropbox.com/scl/fi/yuvdsvjwujt634horiois/2k_venus_atmosphere.jpg?rlkey=5wtdjtebqi60p7umrb027ugh8&st=t17xqy13&dl=0",
+            earthDay: "https://www.dropbox.com/scl/fi/4619v6b5i7032aplwy6lq/2k_earth_daymap-1.jpg?rlkey=vi554dvdt6fpsciviggq8c1ov&st=73ufxdcg&dl=0",
+            earthNight: "https://www.dropbox.com/scl/fi/8mob5zilv239v2xudv50u/2k_earth_nightmap.jpg?rlkey=0g09xa6asricdhbiqmo6zx4u1&st=fuwtny6l&dl=0",
+            moon: "https://www.dropbox.com/scl/fi/hdrony1a56ncqjl4ye0vu/2k_moon.jpg?rlkey=uvghaadr0bawnfn5cmp7ai963&st=keacjcms&dl=0",
+            mars: "https://www.dropbox.com/scl/fi/plup5v3mi8t2184t7fkly/2k_mars.jpg?rlkey=fzumm09s467fj3ge13eot0aug&st=l1y984wz&dl=0",
+            jupiter: "https://www.dropbox.com/scl/fi/tqxfgp8nz9qj6pjkzzmvn/2k_jupiter.jpg?rlkey=phpc69n7ynx62q9s5ehywf4xq&st=qgc9xse8&dl=0",
+            io: "https://www.dropbox.com/scl/fi/ni9w3lle18jcbwcqo145s/textur-gas-kvas-com-l2s3-p-teksturi-sputniki-yupitera-1.jpg?rlkey=o42msb3hbbse4vxny0uphd45z&st=65ldj2mg&dl=0",
+            europa: "https://www.dropbox.com/scl/fi/07172poipvh4ulozd0d5w/textur-gas-kvas-com-l478-p-teksturi-sputniki-yupitera-3.jpg?rlkey=n10qlpybvadglppaqkekb34w7&st=u3ykkyd5&dl=0",
+            ganymede: "https://www.dropbox.com/scl/fi/62yfwah1td4uwesikuqug/textur-gas-kvas-com-l4mc-p-teksturi-sputniki-yupitera-5.jpg?rlkey=ozj5myiv5a6edjwvyszkmj6rs&st=kwuk96hp&dl=0",
+            callisto: "https://www.dropbox.com/scl/fi/wx69qzuy5dzed2b8ik7zv/textur-gas-kvas-com-l4hw-p-teksturi-sputniki-yupitera-4.jpg?rlkey=3ao8obt94qia0y14q4j6zfvg9&st=gs21nxy1&dl=0",
+            saturn: "https://www.dropbox.com/scl/fi/zb1wh0u5wji2fjs3pw9vg/2k_saturn.jpg?rlkey=2sx8uzdnmujxqipfrkvsft066&st=7w4azpx3&dl=0",
+            saturnRings: "https://www.dropbox.com/scl/fi/ybyo10xg42vwgqlfx0rnn/2k_saturn_ring_alpha.png?rlkey=cbdjtu5o4hp1ikck4of007vqs&st=imm0u34n&dl=0",
+            titan: "https://www.dropbox.com/scl/fi/5hniqi7crpvc1dzoo7t6n/textur-gas-kvas-com-kx8w-p-teksturi-planeti-saturn-15.jpg?rlkey=qhxo6ol5ozs7gda29ukoeo7kb&st=8hn42wvx&dl=0",
+            uranus: "https://www.dropbox.com/scl/fi/ak85ah1wdj6ckopl5n0sn/2k_uranus.jpg?rlkey=k1msci55l36f9s8l0tzza0j68&st=rmtwa1p6&dl=0",
+            neptune: "https://www.dropbox.com/scl/fi/1jlqowy7og334t3p7e9oy/2k_neptune.jpg?rlkey=0gmaperr7ubktby3py99j5pxr&st=3wzd601h&dl=0",
+            pluto: "https://www.dropbox.com/scl/fi/6ecnvq31dshiirqouh2dz/textur-gas-kvas-com-75sd-p-teksturi-planeti-pluton-2.jpg?rlkey=63nlvm2th2w15p5qbx9hohszo&st=dop9d4lh&dl=0",
+            charon: "https://www.dropbox.com/scl/fi/vfxdhrrbi08et3o5696wx/textur-gas-kvas-com-79qc-p-teksturi-planeti-pluton-11.jpg?rlkey=v30607hwa3t2buuerj3ci7xa4&st=4ydiookm&dl=0"
         };
 
         const PLANET_RADII = {
-            mercury: 2.5, venus: 4.8, earth: 5.4, mars: 4.8, jupiter: 15.0, saturn: 12.0, uranus: 10.0, neptune: 9.8, pluto: 2.2
+            mercury: 2.5,
+            venus: 4.8,
+            earth: 5.4,
+            mars: 4.8,
+            jupiter: 15.0,
+            saturn: 12.0,
+            uranus: 10.0,
+            neptune: 9.8,
+            pluto: 2.2
         };
 
         const atmosphereVertex = `
@@ -173,6 +203,7 @@
 
         function init() {
             scene = new THREE.Scene();
+
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2500);
             camera.position.set(40, 30, 80);
 
@@ -196,16 +227,19 @@
             const ambientLight = new THREE.AmbientLight(0x222222);
             scene.add(ambientLight);
 
+            // Настройка менеджера загрузки
             const manager = new THREE.LoadingManager();
             const statusEl = document.getElementById('loading-status');
 
             manager.onProgress = function (url, itemsL, itemsT) {
+                itemsLoaded = itemsL;
+                itemsTotal = itemsT;
                 statusEl.innerText = `Загружено: ${itemsL} из ${itemsT}`;
             };
 
             manager.onLoad = function () {
                 texturesLoaded = true;
-                statusEl.innerText = "Готово!";
+                statusEl.innerText = "Все текстуры загружены. Запуск...";
             };
 
             const loader = new THREE.TextureLoader(manager);
@@ -220,52 +254,19 @@
                 return pivot;
             };
 
-            const createGlowingMoon = (dist, colorHex, glowSize) => {
-                const pivot = new THREE.Group();
-                const moonMesh = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.01, 8, 8), 
-                    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
-                );
-                moonMesh.position.set(dist, 0, 0);
-                pivot.add(moonMesh);
-
-                const canvas = document.createElement('canvas');
-                canvas.width = 64; canvas.height = 64;
-                const context = canvas.getContext('2d');
-                const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-                gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
-                gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
-                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                context.fillStyle = gradient;
-                context.fillRect(0, 0, 64, 64);
-                
-                const spriteMap = new THREE.CanvasTexture(canvas);
-                const spriteMaterial = new THREE.SpriteMaterial({ 
-                    map: spriteMap, color: colorHex, transparent: true, blending: THREE.AdditiveBlending 
-                });
-                const sprite = new THREE.Sprite(spriteMaterial);
-                sprite.scale.set(glowSize, glowSize, 1);
-                moonMesh.add(sprite);
-                moonMesh.add(new THREE.PointLight(0xffffff, 0.8, 5));
-                return pivot;
-            };
-
-            // МЕРКУРИЙ
+            // Создание планет
             mercuryGroup = new THREE.Group();
             mercuryGroup.visible = false;
             mercury = new THREE.Mesh(new THREE.SphereGeometry(2.5, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.mercury)), shininess: 2 }));
             mercuryGroup.add(mercury);
             scene.add(mercuryGroup);
 
-            // ВЕНЕРА
             venusGroup = new THREE.Group();
             venusGroup.visible = false;
             venus = new THREE.Mesh(new THREE.SphereGeometry(4.8, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.venus)), shininess: 5 }));
             venusGroup.add(venus);
             scene.add(venusGroup);
 
-            // ЗЕМЛЯ
             earthGroup = new THREE.Group();
             earthGroup.visible = true;
             const earthDayTex = loader.load(getTexturePath(TEXTURES.earthDay));
@@ -291,19 +292,23 @@
             earthGroup.add(moonPivot);
             scene.add(earthGroup);
 
-            // МАРС
             marsGroup = new THREE.Group();
             marsGroup.visible = false;
             mars = new THREE.Mesh(new THREE.SphereGeometry(4.5, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.mars)) }));
             marsGroup.add(mars);
             const marsAtmosphere = new THREE.Mesh(new THREE.SphereGeometry(4.8, 64, 64), new THREE.ShaderMaterial({ vertexShader: atmosphereVertex, fragmentShader: atmosphereFragment, uniforms: { atmosphereColor: { value: new THREE.Color(0xffaa88) } }, side: THREE.BackSide, transparent: true }));
             marsGroup.add(marsAtmosphere);
-            phobosPivot = createGlowingMoon(7.5, 0xffffff, 0.35);
-            deimosPivot = createGlowingMoon(11, 0xffffff, 0.25);
+            phobosPivot = new THREE.Group();
+            const phobos = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), new THREE.MeshPhongMaterial({ color: 0x887766 }));
+            phobos.position.set(7.5, 0, 0);
+            phobosPivot.add(phobos);
+            deimosPivot = new THREE.Group();
+            const deimos = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), new THREE.MeshPhongMaterial({ color: 0x998877 }));
+            deimos.position.set(11, 0, 0);
+            deimosPivot.add(deimos);
             marsGroup.add(phobosPivot, deimosPivot);
             scene.add(marsGroup);
 
-            // ЮПИТЕР
             jupiterGroup = new THREE.Group();
             jupiterGroup.visible = false;
             jupiter = new THREE.Mesh(new THREE.SphereGeometry(15, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.jupiter)) }));
@@ -315,62 +320,54 @@
             jupiterGroup.add(ioPivot, europaPivot, ganymedePivot, callistoPivot);
             scene.add(jupiterGroup);
 
-            // САТУРН
             saturnGroup = new THREE.Group();
             saturnGroup.visible = false;
             saturn = new THREE.Mesh(new THREE.SphereGeometry(12, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.saturn)) }));
             saturnGroup.add(saturn);
             const ringTex = loader.load(getTexturePath(TEXTURES.saturnRings));
-            const ringGeo = new THREE.RingGeometry(15, 28, 128);
-            const ringUv = ringGeo.attributes.uv;
-            for (let i = 0; i < ringGeo.attributes.position.count; i++) {
-                const x = ringGeo.attributes.position.getX(i);
-                const y = ringGeo.attributes.position.getY(i);
-                const dist = Math.sqrt(x*x + y*y);
-                const u = (dist - 15) / (28 - 15);
-                ringUv.setXY(i, u, 0);
-            }
-            saturnRings = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ map: ringTex, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
-            saturnRings.rotation.x = Math.PI / 2;
+            const createRing = (inner, outer, opacity) => {
+                const ringGeo = new THREE.RingGeometry(inner, outer, 128);
+                const ringUv = ringGeo.attributes.uv;
+                for (let i = 0; i < ringGeo.attributes.position.count; i++) {
+                    const x = ringGeo.attributes.position.getX(i);
+                    const y = ringGeo.attributes.position.getY(i);
+                    const dist = Math.sqrt(x*x + y*y);
+                    const u = (dist - inner) / (outer - inner);
+                    ringUv.setXY(i, u, 0);
+                }
+                const ringMat = new THREE.MeshBasicMaterial({ map: ringTex, side: THREE.DoubleSide, transparent: true, opacity: opacity });
+                const mesh = new THREE.Mesh(ringGeo, ringMat);
+                mesh.rotation.x = Math.PI / 2;
+                return mesh;
+            };
+            saturnRings = createRing(15, 28, 0.8);
             saturnGroup.add(saturnRings);
             titanPivot = createMoon(1.4, 45, TEXTURES.titan);
             saturnGroup.add(titanPivot);
             scene.add(saturnGroup);
 
-            // УРАН
             uranusGroup = new THREE.Group();
             uranusGroup.visible = false;
             uranus = new THREE.Mesh(new THREE.SphereGeometry(10, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.uranus)) }));
-            const uranusCore = new THREE.Group();
-            uranusCore.rotation.z = Math.PI / 2; 
-            uranusCore.add(uranus);
-            const uranusRingGeo = new THREE.RingGeometry(13, 17, 128);
-            const uRingUv = uranusRingGeo.attributes.uv;
-            for (let i = 0; i < uranusRingGeo.attributes.position.count; i++) {
-                const x = uranusRingGeo.attributes.position.getX(i);
-                const y = uranusRingGeo.attributes.position.getY(i);
-                const dist = Math.sqrt(x*x + y*y);
-                const u = (dist - 13) / (17 - 13);
-                uRingUv.setXY(i, u, 0);
-            }
-            uranusRings = new THREE.Mesh(uranusRingGeo, new THREE.MeshBasicMaterial({ map: ringTex, color: 0x88ccff, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
-            uranusRings.rotation.y = Math.PI / 2; 
-            uranusGroup.add(uranusCore, uranusRings);
+            uranus.rotation.x = Math.PI / 2; 
+            uranusGroup.add(uranus);
+            // Кольца Урана (тонкие и блеклые, используя ту же текстуру)
+            uranusRings = createRing(12, 18, 0.4);
+            uranusGroup.add(uranusRings);
             scene.add(uranusGroup);
 
-            // НЕПТУН
             neptuneGroup = new THREE.Group();
             neptuneGroup.visible = false;
             neptune = new THREE.Mesh(new THREE.SphereGeometry(9.8, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.neptune)) }));
             neptuneGroup.add(neptune);
             scene.add(neptuneGroup);
 
-            // ПЛУТОН
             plutoGroup = new THREE.Group();
             plutoGroup.visible = false;
-            pluto = new THREE.Mesh(new THREE.SphereGeometry(2.2, 64, 64), new THREE.MeshPhongMaterial({ map: loader.load(getTexturePath(TEXTURES.pluto)) }));
+            const plutoTex = loader.load(getTexturePath(TEXTURES.pluto));
+            pluto = new THREE.Mesh(new THREE.SphereGeometry(2.2, 64, 64), new THREE.MeshPhongMaterial({ map: plutoTex }));
             plutoGroup.add(pluto);
-            charonPivot = createMoon(1.8, 5.5, TEXTURES.charon);
+            charonPivot = createMoon(1.1, 5.5, TEXTURES.charon); // Слегка уменьшил Харон относительно Плутона для реализма
             plutoGroup.add(charonPivot);
             scene.add(plutoGroup);
 
@@ -381,14 +378,16 @@
             scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.8 })));
 
             window.addEventListener('resize', onWindowResize, false);
+            
             const checkReady = setInterval(() => {
                 if (texturesLoaded) {
                     clearInterval(checkReady);
                     const loaderScreen = document.getElementById('loading-screen');
+                    const uiLayer = document.getElementById('ui-layer');
                     loaderScreen.style.opacity = '0';
                     setTimeout(() => {
                         loaderScreen.style.display = 'none';
-                        document.getElementById('ui-layer').style.display = 'block';
+                        uiLayer.style.display = 'block';
                     }, 1000);
                 }
             }, 500);
@@ -400,7 +399,10 @@
         function switchPlanet(planet) {
             currentPlanet = planet;
             const btns = ['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
-            btns.forEach(b => document.getElementById('btn-' + b)?.classList.toggle('active', planet === b));
+            btns.forEach(b => {
+                const btn = document.getElementById('btn-' + b);
+                if (btn) btn.classList.toggle('active', planet === b);
+            });
             
             mercuryGroup.visible = (planet === 'mercury');
             venusGroup.visible = (planet === 'venus');
@@ -413,7 +415,10 @@
             plutoGroup.visible = (planet === 'pluto');
             
             controls.minDistance = PLANET_RADII[planet] + 1; 
-            if (camera.position.length() < controls.minDistance) camera.position.setLength(controls.minDistance + 5);
+            const currentDist = camera.position.length();
+            if (currentDist < controls.minDistance) {
+                camera.position.setLength(controls.minDistance + 5);
+            }
             controls.update();
         }
 
@@ -426,26 +431,35 @@
         function animate(time) {
             requestAnimationFrame(animate);
             const ts = time * 0.001;
+
             if (currentPlanet === 'mercury') mercury.rotation.y += 0.001;
             else if (currentPlanet === 'venus') venus.rotation.y -= 0.0004;
             else if (currentPlanet === 'earth') { 
                 earth.rotation.y += 0.0005; 
-                if (clouds) { clouds.rotation.y += 0.0007; clouds.material.uniforms.uTime.value = ts; }
+                if (clouds) {
+                    clouds.rotation.y += 0.0007;
+                    clouds.material.uniforms.uTime.value = ts;
+                }
                 moonPivot.rotation.y += 0.0006; 
             }
             else if (currentPlanet === 'mars') { 
-                mars.rotation.y += 0.0008; phobosPivot.rotation.y += 0.005; deimosPivot.rotation.y += 0.002;
-                phobosPivot.children[0].children[0].material.opacity = 0.8 + Math.sin(ts * 10) * 0.2;
-                deimosPivot.children[0].children[0].material.opacity = 0.8 + Math.cos(ts * 8) * 0.2;
+                mars.rotation.y += 0.0008; 
+                phobosPivot.rotation.y += 0.005; 
+                deimosPivot.rotation.y += 0.002;
             }
             else if (currentPlanet === 'jupiter') { jupiter.rotation.y += 0.0012; ioPivot.rotation.y += 0.008; europaPivot.rotation.y += 0.004; ganymedePivot.rotation.y += 0.002; callistoPivot.rotation.y += 0.001; }
             else if (currentPlanet === 'saturn') { saturn.rotation.y += 0.0015; titanPivot.rotation.y += 0.0004; }
-            else if (currentPlanet === 'uranus') { uranus.rotation.y += 0.002; uranusRings.rotation.z += 0.0002; }
+            else if (currentPlanet === 'uranus') { uranus.rotation.z += 0.001; if(uranusRings) uranusRings.rotation.z -= 0.0005; }
             else if (currentPlanet === 'neptune') { neptune.rotation.y += 0.0011; }
-            else if (currentPlanet === 'pluto') { pluto.rotation.y += 0.0005; charonPivot.rotation.y += 0.0005; }
+            else if (currentPlanet === 'pluto') { 
+                pluto.rotation.y += 0.0005; 
+                charonPivot.rotation.y += 0.0005; 
+            }
+            
             controls.update();
             renderer.render(scene, camera);
         }
+
         window.onload = init;
     </script>
 </body>
